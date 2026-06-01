@@ -1,0 +1,100 @@
+"""Prefect flow that runs the four dataset ingestions in parallel.
+
+USGS events output is gated by a Great Expectations quality check.
+"""
+
+import argparse
+import logging
+
+from prefect import flow, get_run_logger, task
+
+from ingestion import gem_faults, global_cmt, tectonic_plates, usgs_events
+from quality import run_checks
+
+
+@task(name="ingest-gem-faults", retries=3, retry_delay_seconds=5, tags=["gem-faults"])
+def ingest_gem_faults() -> str:
+    log = get_run_logger()
+    gdf = gem_faults.fetch()
+    log.info("Fetched %s fault features", len(gdf))
+    uri = gem_faults.write(gdf)
+    log.info("Wrote %s", uri)
+    return uri
+
+
+@task(name="ingest-global-cmt", retries=3, retry_delay_seconds=5, tags=["global-cmt"])
+def ingest_global_cmt() -> str | None:
+    log = get_run_logger()
+    frames = []
+    for slice_ in global_cmt.SLICES:
+        df = global_cmt.fetch_slice(slice_)
+        log.info("Wrote %s (%s rows)", global_cmt.write_slice(slice_, df), len(df))
+        frames.append(df)
+    uri = global_cmt.write_combined(frames)
+    log.info("Wrote combined %s", uri)
+    return uri
+
+
+@task(name="ingest-tectonic-plates", tags=["tectonic-plates"])
+def ingest_tectonic_plates() -> dict[str, str]:
+    log = get_run_logger()
+    plates = tectonic_plates.load_plates(
+        tectonic_plates.DATASETS_DIR / tectonic_plates.PLATES_FILE
+    )
+    boundaries = tectonic_plates.load_plate_boundaries(
+        tectonic_plates.DATASETS_DIR / tectonic_plates.BOUNDARIES_FILE
+    )
+    plates_uri = tectonic_plates.write_plates(plates)
+    boundaries_uri = tectonic_plates.write_plate_boundaries(boundaries)
+    log.info("Wrote %s and %s", plates_uri, boundaries_uri)
+    return {"plates": plates_uri, "boundaries": boundaries_uri}
+
+
+@task(name="ingest-usgs-events", retries=3, retry_delay_seconds=5, tags=["usgs"])
+def ingest_usgs_events(start_year: int = 2015, end_year: int = 2026) -> str | None:
+    log = get_run_logger()
+    years = range(start_year, end_year)
+    for year in years:
+        watermark = usgs_events.year_watermark(year)
+        df = usgs_events.fetch_year(year, updated_after=watermark)
+        log.info("Fetched %s events for %s (since %s)", len(df), year, watermark)
+        usgs_events.upsert_year(year, df)
+    uri = usgs_events.write_combined(years)
+    log.info("Wrote combined %s", uri)
+    return uri
+
+
+@task(name="check-events", retries=0, tags=["quality"])
+def check_events_quality() -> str:
+    if not run_checks.check_events():
+        raise RuntimeError("events_suite failed; see quality/reports/events_suite.html")
+    return "events_suite"
+
+
+@flow(name="ingest-all")
+def ingest_all(start_year: int = 2015, end_year: int = 2026) -> dict:
+    usgs_future = ingest_usgs_events.submit(start_year, end_year)
+    futures = {
+        "gem_faults": ingest_gem_faults.submit(),
+        "global_cmt": ingest_global_cmt.submit(),
+        "tectonic_plates": ingest_tectonic_plates.submit(),
+        "usgs_events": usgs_future,
+        "events_quality": check_events_quality.submit(wait_for=[usgs_future]),
+    }
+    return {name: f.result() for name, f in futures.items()}
+
+
+def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--start-year", type=int, default=2015)
+    p.add_argument("--end-year", type=int, default=2026)
+    args = p.parse_args()
+    ingest_all(start_year=args.start_year, end_year=args.end_year)
+
+
+if __name__ == "__main__":
+    main()

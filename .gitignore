@@ -1,0 +1,26 @@
+data/
+.env
+
+# --- Secrets ---
+creds/
+
+# --- Terraform ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+*.tfplan.*
+# Keep .terraform.lock.hcl committed; uncomment to ignore:
+# .terraform.lock.hcl
+# Local variable files often contain secrets/project IDs
+*.tfvars
+*.tfvars.json
+!example.tfvars
+!example.tfvars.json
