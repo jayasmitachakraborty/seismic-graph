@@ -60,13 +60,14 @@ GLOBAL_CMT_DTYPES: dict[str, str] = {
 }
 GLOBAL_CMT_DATES: tuple[str, ...] = ("datetime",)
 
+# GEM ships dip/rake/slip-rate as "(preferred, min, max)" triple strings;
+# clean_faults parses the preferred value out of them, so they stay strings here.
 GEM_FAULTS_DTYPES: dict[str, str] = {
-    "name":      "string",
-    "slip_type": "string",
-    "slip_rate": "float64",
-    "dip":       "float64",
-    "rake":      "float64",
-    "country":   "string",
+    "name":          "string",
+    "slip_type":     "string",
+    "net_slip_rate": "string",
+    "average_dip":   "string",
+    "average_rake":  "string",
 }
 
 # --- Processed layer ---------------------------------------------------------

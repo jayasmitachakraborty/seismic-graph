@@ -15,7 +15,6 @@ log = logging.getLogger(__name__)
 
 @contextmanager
 def driver() -> Iterator[Driver]:
-    """Verified Aura driver from NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD."""
     drv = GraphDatabase.driver(
         os.environ["NEO4J_URI"],
         auth=(

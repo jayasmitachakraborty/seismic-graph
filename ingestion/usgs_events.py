@@ -113,6 +113,13 @@ def upsert_year(year: int, new_df: pd.DataFrame) -> str | None:
     if new_df.empty:
         return str(_year_path(year))
     combined = pd.concat([existing, new_df], ignore_index=True)
+    # ``existing`` comes back from the typed reader with ``updated`` parsed to
+    # Timestamps, while a freshly fetched ``new_df`` still holds raw CSV
+    # strings. Normalise both date columns so the sort below doesn't compare
+    # str against Timestamp.
+    for col in dtypes.USGS_RAW_DATES:
+        if col in combined.columns:
+            combined[col] = pd.to_datetime(combined[col], utc=True, errors="coerce")
     if "id" in combined.columns:
         combined = (
             combined.sort_values("updated")

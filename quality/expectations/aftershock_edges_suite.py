@@ -13,31 +13,22 @@ SUITE_NAME = "aftershock_edges_suite"
 
 
 def build() -> gx.ExpectationSuite:
-    suite = gx.ExpectationSuite(name=SUITE_NAME)
-
-    # Aftershock smaller than mainshock. The builder's stricter
-    # ``mag_diff >= MAG_DIFF_MIN`` is a tuning choice; here we only assert
-    # the contract (mag_diff > 0) so the suite stays semantic.
-    suite.add_expectation(
+    expectations = [
+        # Aftershock smaller than mainshock. The builder's stricter
+        # ``mag_diff >= MAG_DIFF_MIN`` is a tuning choice; here we only assert
+        # the contract (mag_diff > 0) so the suite stays semantic.
         gxe.ExpectColumnValuesToBeBetween(
             column="mag_diff", min_value=0, strict_min=True
-        )
-    )
-
-    suite.add_expectation(
+        ),
         gxe.ExpectColumnValuesToBeBetween(
             column="time_delta_days",
             min_value=0,
             max_value=builder.TIME_WINDOW_DAYS,
-        )
-    )
-
-    suite.add_expectation(
+        ),
         gxe.ExpectColumnValuesToBeBetween(
             column="dist_km",
             min_value=0,
             max_value=builder.DIST_THRESHOLD_KM,
-        )
-    )
-
-    return suite
+        ),
+    ]
+    return gx.ExpectationSuite(name=SUITE_NAME, expectations=expectations)

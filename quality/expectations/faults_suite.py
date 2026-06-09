@@ -14,42 +14,31 @@ SUITE_NAME = "faults_suite"
 # joins actually depend on are gated as not-null.
 REQUIRED_COLUMNS: tuple[str, ...] = ("fault_id", "fault_type", "source")
 
-# Canonical buckets produced by transform/clean_faults.py:FAULT_TYPE_MAP;
-# pulled live so any new bucket is automatically allowed.
-FAULT_TYPES: tuple[str, ...] = tuple(sorted(set(clean_faults.FAULT_TYPE_MAP.values())))
+# Canonical buckets produced by transform/clean_faults.py; pulled live so any
+# new bucket is automatically allowed.
+FAULT_TYPES: tuple[str, ...] = tuple(sorted(clean_faults.CANONICAL_FAULT_TYPES))
 
 
 def build() -> gx.ExpectationSuite:
-    suite = gx.ExpectationSuite(name=SUITE_NAME)
-
-    for col in REQUIRED_COLUMNS:
-        suite.add_expectation(gxe.ExpectColumnValuesToNotBeNull(column=col))
-
-    suite.add_expectation(gxe.ExpectColumnValuesToBeUnique(column="fault_id"))
-
-    suite.add_expectation(
+    expectations = [
+        *(gxe.ExpectColumnValuesToNotBeNull(column=col) for col in REQUIRED_COLUMNS),
+        gxe.ExpectColumnValuesToBeUnique(column="fault_id"),
         gxe.ExpectColumnValuesToBeInSet(
             column="fault_type", value_set=list(FAULT_TYPES),
-        )
-    )
-
-    # Physical-impossibility guards. GE skips nulls by default, which is what
-    # we want — GEM leaves these blank for many segments.
-    suite.add_expectation(
+        ),
+        # Physical-impossibility guards. GE skips nulls by default, which is
+        # what we want — GEM leaves these blank for many segments.
         gxe.ExpectColumnValuesToBeBetween(
             column="dip_angle_deg", min_value=0, max_value=90,
-        )
-    )
-    suite.add_expectation(
+        ),
         gxe.ExpectColumnValuesToBeBetween(
             column="rake_deg", min_value=-180, max_value=180,
-        )
-    )
-    # Cap at 200 mm/yr: fastest plate boundary (Pacific-Nazca) peaks ~160.
-    suite.add_expectation(
+        ),
+        # Cap at 300 mm/yr: GEM's net_slip_rate reaches ~263 on the fastest
+        # convergent/back-arc margins (Tonga-Kermadec); 300 leaves headroom
+        # while still flagging physically impossible rates.
         gxe.ExpectColumnValuesToBeBetween(
-            column="slip_rate_mm_yr", min_value=0, max_value=200,
-        )
-    )
-
-    return suite
+            column="slip_rate_mm_yr", min_value=0, max_value=300,
+        ),
+    ]
+    return gx.ExpectationSuite(name=SUITE_NAME, expectations=expectations)

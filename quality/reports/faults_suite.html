@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>faults_suite</title>
+<style>
+body { font-family: sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+.banner { padding: .75rem; border-radius: 4px; font-weight: bold; margin: 1rem 0; }
+.pass { background: #dafbe1; color: #1a7f37; }
+.fail { background: #ffebe9; color: #cf222e; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #ddd; vertical-align: top; }
+th { background: #f6f8fa; }
+tr.fail td { background: #fff5f5; }
+pre { background: #f6f8fa; padding: .5rem; overflow-x: auto; font-size: .85rem; margin: 0; }
+</style>
+<h1>faults_suite</h1>
+<p>asset: faults &middot; 16,195 rows &middot; 2026-06-07 07:38:06 UTC</p>
+<div class="banner pass">All expectations passed (8/8 passed)</div>
+<table>
+<tr><th>Status</th><th>Expectation</th><th>Column</th><th>Kwargs</th><th>Details</th></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_not_be_null</td><td>fault_id</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_be_unique</td><td>fault_id</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_not_be_null</td><td>fault_type</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_be_in_set</td><td>fault_type</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;, &quot;value_set&quot;: [&quot;normal&quot;, &quot;oblique&quot;, &quot;reverse&quot;, &quot;strike-slip&quot;, &quot;unknown&quot;]}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_not_be_null</td><td>source</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_be_between</td><td>dip_angle_deg</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;, &quot;min_value&quot;: 0.0, &quot;max_value&quot;: 90.0}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_be_between</td><td>rake_deg</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;, &quot;min_value&quot;: -180.0, &quot;max_value&quot;: 180.0}</td><td></td></tr>
+<tr class="pass"><td>PASS</td><td>expect_column_values_to_be_between</td><td>slip_rate_mm_yr</td><td>{&quot;batch_id&quot;: &quot;faults_source-faults&quot;, &quot;min_value&quot;: 0.0, &quot;max_value&quot;: 300.0}</td><td></td></tr>
+</table>

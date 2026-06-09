@@ -12,20 +12,26 @@ import requests
 from ingestion import _storage
 from utils import dtypes
 
-BASE_URL = "https://www.globalcmt.org/CMT/static"
+BASE_URL = "https://www.ldeo.columbia.edu/~gcmt/projects/CMT/catalog"
 SUBDIR = "global_cmt"
 COMBINED_FILE = "cmt_all.csv"
 TIMEOUT = 300
 NDK_BLOCK_LINES = 5
+
+# 1976–2020 ships as one bundle; 2021 onward only as monthly files.
+MONTHLY_YEARS = range(2021, 2026)
+_MONTHS = (
+    "jan", "feb", "mar", "apr", "may", "jun",
+    "jul", "aug", "sep", "oct", "nov", "dec",
+)
 
 log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class Slice:
-    source: str
-    start_year: int
-    end_year: int
+    source: str  # path relative to BASE_URL, e.g. "jan76_dec20.ndk"
+    optional: bool = False  # monthly files lag; tolerate a 404 instead of failing
 
     @property
     def url(self) -> str:
@@ -33,13 +39,21 @@ class Slice:
 
     @property
     def csv(self) -> str:
-        return f"cmt_{self.start_year}_{self.end_year}.csv"
+        stem = self.source.rsplit("/", 1)[-1].removesuffix(".ndk")
+        return f"cmt_{stem}.csv"
+
+
+def _monthly_slices(years: range) -> tuple[Slice, ...]:
+    return tuple(
+        Slice(f"NEW_MONTHLY/{year}/{month}{year % 100:02d}.ndk", optional=True)
+        for year in years
+        for month in _MONTHS
+    )
 
 
 SLICES: tuple[Slice, ...] = (
-    Slice("jan76_dec17.ndk", 1976, 2017),
-    Slice("jan18_dec20.ndk", 2018, 2020),
-    Slice("jan21_dec23.ndk", 2021, 2023),
+    Slice("jan76_dec20.ndk"),
+    *_monthly_slices(MONTHLY_YEARS),
 )
 
 
@@ -110,6 +124,9 @@ def parse_ndk_text(text: str) -> pd.DataFrame:
 def fetch_slice(slice_: Slice) -> pd.DataFrame:
     log.info("Downloading %s", slice_.url)
     r = requests.get(slice_.url, timeout=TIMEOUT)
+    if slice_.optional and r.status_code == 404:
+        log.warning("Optional slice %s not published yet (404); skipping", slice_.url)
+        return pd.DataFrame()
     r.raise_for_status()
     r.encoding = "ascii"
     return parse_ndk_text(r.text)

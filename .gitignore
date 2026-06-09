@@ -24,3 +24,5 @@ override.tf.json
 *.tfvars.json
 !example.tfvars
 !example.tfvars.json
+
+venv/
