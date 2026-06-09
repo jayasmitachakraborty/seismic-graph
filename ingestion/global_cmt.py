@@ -5,6 +5,7 @@ NDK format reference: https://www.globalcmt.org/CMT/allorder.ndk_explained
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import pandas as pd
 import requests
@@ -18,8 +19,16 @@ COMBINED_FILE = "cmt_all.csv"
 TIMEOUT = 300
 NDK_BLOCK_LINES = 5
 
-# 1976–2020 ships as one bundle; 2021 onward only as monthly files.
-MONTHLY_YEARS = range(2021, 2026)
+
+def _current_year() -> int:
+    return datetime.now(timezone.utc).year
+
+
+# 1976–2020 ships as one bundle; 2021 onward only as monthly files. The upper
+# bound tracks the current year so newly published months are always fetched
+# (missing months 404 and are skipped via Slice.optional).
+MONTHLY_START_YEAR = 2021
+MONTHLY_YEARS = range(MONTHLY_START_YEAR, _current_year() + 1)
 _MONTHS = (
     "jan", "feb", "mar", "apr", "may", "jun",
     "jul", "aug", "sep", "oct", "nov", "dec",

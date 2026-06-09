@@ -7,6 +7,7 @@ Stage 2: MERGE relationships in parallel, each waiting only on the node
            - TRIGGERED      needs Fault + Earthquake
            - OCCURRED_IN    needs Earthquake + GeologicalRegion
            - HAS_MECHANISM  needs Earthquake + FocalMechanism
+           - AFTERSHOCK_OF  needs Earthquake
 
 Each task opens its own driver+session via ``load._neo4j.driver`` so
 Prefect workers don't share a connection. Run ``make neo4j-indexes``
@@ -71,6 +72,13 @@ def task_load_has_mechanism() -> str:
     return "HAS_MECHANISM"
 
 
+@task(name="load-aftershock-of", retries=2, retry_delay_seconds=5, tags=["edges"])
+def task_load_aftershock_of() -> str:
+    with driver() as drv, drv.session() as session:
+        load_relationships.load_aftershock_of(session)
+    return "AFTERSHOCK_OF"
+
+
 @flow(name="load-all")
 def load_all() -> dict[str, str]:
     log = get_run_logger()
@@ -91,6 +99,9 @@ def load_all() -> dict[str, str]:
     has_mechanism_future = task_load_has_mechanism.submit(
         wait_for=[earthquakes_future, mechanisms_future],
     )
+    aftershock_of_future = task_load_aftershock_of.submit(
+        wait_for=[earthquakes_future],
+    )
 
     return {
         "earthquakes":      earthquakes_future.result(),
@@ -100,6 +111,7 @@ def load_all() -> dict[str, str]:
         "triggered":        triggered_future.result(),
         "occurred_in":      occurred_in_future.result(),
         "has_mechanism":    has_mechanism_future.result(),
+        "aftershock_of":    aftershock_of_future.result(),
     }
 
 

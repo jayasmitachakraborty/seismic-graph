@@ -17,3 +17,5 @@ great_expectations>=1.0
 
 # --- Graph database ---
 neo4j>=5.20
+
+duckdb>=1.0

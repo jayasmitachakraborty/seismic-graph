@@ -4,7 +4,8 @@
 # Each tf-* target sources .env so TF_VAR_* values resolve correctly.
 
 SHELL := /bin/bash
-.PHONY: tf-% env-check venv clean ingestion-flow transform-flow load-flow \
+.PHONY: tf-% env-check venv clean ingestion-flow ingest-events-flow ingest-cmt-flow \
+        transform-flow load-flow \
         neo4j-indexes neo4j-nodes neo4j-edges neo4j-load
 
 tf-%:
@@ -28,7 +29,16 @@ clean:
 
 ingestion-flow:
 	@set -a && . ./.env && set +a && \
-	python -m pipeline.ingestion_flow --start-year 2015 --end-year 2026
+	python -m pipeline.ingestion_flow all --start-year 2015
+
+# Events change ~daily; CMT publishes ~monthly. Run them on separate cadences.
+ingest-events-flow:	
+	@set -a && . ./.env && set +a && \
+	python -m pipeline.ingestion_flow events --start-year 2015
+
+ingest-cmt-flow:
+	@set -a && . ./.env && set +a && \
+	python -m pipeline.ingestion_flow cmt
 
 transform-flow:
 	@set -a && . ./.env && set +a && \

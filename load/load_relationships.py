@@ -37,6 +37,17 @@ SET r.dist_km = row.dist_km,
     r.dt_sec  = row.dt_sec
 """
 
+# (:Earthquake aftershock)-[:AFTERSHOCK_OF {dist_km, time_delta_days, mag_diff}]->(:Earthquake mainshock)
+MERGE_AFTERSHOCK_OF = """
+UNWIND $rows AS row
+MATCH (after:Earthquake {event_id: row.aftershock_id})
+MATCH (main:Earthquake  {event_id: row.mainshock_id})
+MERGE (after)-[r:AFTERSHOCK_OF]->(main)
+SET r.dist_km         = row.dist_km,
+    r.time_delta_days = row.time_delta_days,
+    r.mag_diff        = row.mag_diff
+"""
+
 
 def load_triggered(session: Session) -> None:
     df = dtypes.read_event_fault_edges()
@@ -53,11 +64,17 @@ def load_has_mechanism(session: Session) -> None:
     run_batched(session, MERGE_HAS_MECHANISM, to_records(df), "has_mechanism")
 
 
+def load_aftershock_of(session: Session) -> None:
+    df = dtypes.read_aftershock_edges()
+    run_batched(session, MERGE_AFTERSHOCK_OF, to_records(df), "aftershock_of")
+
+
 def load_all() -> None:
     with driver() as drv, drv.session() as session:
         load_triggered(session)
         load_occurred_in(session)
         load_has_mechanism(session)
+        load_aftershock_of(session)
 
 
 if __name__ == "__main__":
