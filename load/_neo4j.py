@@ -8,7 +8,7 @@ from typing import Iterator
 import pandas as pd
 from neo4j import Driver, GraphDatabase, Session
 
-BATCH_SIZE = 1_000
+BATCH_SIZE = 5_000
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +21,9 @@ def driver() -> Iterator[Driver]:
             os.environ.get("NEO4J_USER", "neo4j"),
             os.environ["NEO4J_PASSWORD"],
         ),
+        max_connection_lifetime=300,   # recycle pooled connections before they go stale
+        keep_alive=True,
+        connection_timeout=30,         # timeout for new connections
     )
     try:
         drv.verify_connectivity()

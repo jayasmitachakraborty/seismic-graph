@@ -1,7 +1,9 @@
 """GX suite for ``data/processed/aftershock_edges.csv``.
 
 Enforces edge semantics: aftershock happens after the mainshock, is
-smaller, and falls within the spatial window the builder uses.
+smaller, and falls within the builder's windows. The time/distance windows
+are magnitude-scaled per edge, so the suite asserts the global caps; the
+per-magnitude bound is the builder's responsibility.
 """
 
 import great_expectations as gx
@@ -23,12 +25,12 @@ def build() -> gx.ExpectationSuite:
         gxe.ExpectColumnValuesToBeBetween(
             column="time_delta_days",
             min_value=0,
-            max_value=builder.TIME_WINDOW_DAYS,
+            max_value=builder.TIME_WINDOW_MAX_DAYS,
         ),
         gxe.ExpectColumnValuesToBeBetween(
             column="dist_km",
             min_value=0,
-            max_value=builder.DIST_THRESHOLD_KM,
+            max_value=builder.DIST_THRESHOLD_MAX_KM,
         ),
     ]
     return gx.ExpectationSuite(name=SUITE_NAME, expectations=expectations)
